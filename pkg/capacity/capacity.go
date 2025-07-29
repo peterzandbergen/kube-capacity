@@ -59,12 +59,14 @@ func FetchAndPrint(opts Options) {
 }
 
 func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLabels, nodeLabels, nodeTaints, namespaceLabels string, namespaces []string) (*corev1.PodList, *corev1.NodeList) {
+	var nodeList *corev1.NodeList
 	nodeList, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
 		LabelSelector: nodeLabels,
 	})
 	if err != nil {
 		fmt.Printf("Error listing Nodes: %v\n", err)
-		os.Exit(2)
+		// os.Exit(2)
+		nodeList = new(corev1.NodeList)
 	}
 	if excludeTainted {
 		filteredNodeList := []corev1.Node{}

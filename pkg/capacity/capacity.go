@@ -17,6 +17,7 @@ package capacity
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -38,6 +39,9 @@ func FetchAndPrint(opts Options) {
 	}
 
 	podList, nodeList := getPodsAndNodes(clientset, opts.ExcludeTainted, opts.PodLabels, opts.NodeLabels, opts.NodeTaints, opts.NamespaceLabels, opts.Namespaces)
+
+	log.Printf("got %d pods and %d nodes", len(podList.Items), len(nodeList.Items))
+
 	var pmList *v1beta1.PodMetricsList
 	var nmList *v1beta1.NodeMetricsList
 
@@ -202,6 +206,9 @@ func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLab
 		podList.Items = newPodItems
 	}
 
+	if nodeList == nil {
+		nodeList = new(corev1.NodeList)
+	}
 	return podList, nodeList
 }
 

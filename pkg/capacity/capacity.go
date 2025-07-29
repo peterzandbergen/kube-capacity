@@ -149,9 +149,12 @@ func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLab
 			podList.Items = append(podList.Items, pl.Items...)
 		}
 		if err != nil {
-			fmt.Printf("Error listing Pods: %v\n", err)
-			os.Exit(3)
+			fmt.Printf("Error listing Pods in namespace %s: %v\n", namespace, err)
+			// os.Exit(3)
 		}
+	}
+	if podList == nil {
+		podList = new(corev1.PodList)
 	}
 
 	newPodItems := []corev1.Pod{}

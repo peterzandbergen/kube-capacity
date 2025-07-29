@@ -37,7 +37,7 @@ func FetchAndPrint(opts Options) {
 		os.Exit(1)
 	}
 
-	podList, nodeList := getPodsAndNodes(clientset, opts.ExcludeTainted, opts.PodLabels, opts.NodeLabels, opts.NodeTaints, opts.NamespaceLabels, opts.Namespace)
+	podList, nodeList := getPodsAndNodes(clientset, opts.ExcludeTainted, opts.PodLabels, opts.NodeLabels, opts.NodeTaints, opts.NamespaceLabels, opts.Namespaces)
 	var pmList *v1beta1.PodMetricsList
 	var nmList *v1beta1.NodeMetricsList
 
@@ -48,8 +48,8 @@ func FetchAndPrint(opts Options) {
 			os.Exit(4)
 		}
 
-		pmList = getPodMetrics(mClientset, opts.Namespace)
-		if opts.Namespace == "" && opts.NamespaceLabels == "" {
+		pmList = getPodMetrics(mClientset, opts.Namespaces)
+		if len(opts.Namespaces) == 0 && opts.NamespaceLabels == "" {
 			nmList = getNodeMetrics(mClientset, nodeList, opts.NodeLabels)
 		}
 	}
@@ -58,7 +58,7 @@ func FetchAndPrint(opts Options) {
 	printList(&cm, opts)
 }
 
-func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLabels, nodeLabels, nodeTaints, namespaceLabels, namespace string) (*corev1.PodList, *corev1.NodeList) {
+func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLabels, nodeLabels, nodeTaints, namespaceLabels string, namespaces []string) (*corev1.PodList, *corev1.NodeList) {
 	nodeList, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
 		LabelSelector: nodeLabels,
 	})
@@ -136,12 +136,20 @@ func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLab
 		}
 	}
 
-	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: podLabels,
-	})
-	if err != nil {
-		fmt.Printf("Error listing Pods: %v\n", err)
-		os.Exit(3)
+	var podList *corev1.PodList
+	for _, namespace := range namespaces {
+		pl, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: podLabels,
+		})
+		if podList == nil {
+			podList = pl
+		} else {
+			podList.Items = append(podList.Items, pl.Items...)
+		}
+		if err != nil {
+			fmt.Printf("Error listing Pods: %v\n", err)
+			os.Exit(3)
+		}
 	}
 
 	newPodItems := []corev1.Pod{}
@@ -161,7 +169,7 @@ func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLab
 
 	podList.Items = newPodItems
 
-	if namespace == "" && namespaceLabels != "" {
+	if len(namespaces) == 0 && namespaceLabels != "" {
 		namespaceList, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{
 			LabelSelector: namespaceLabels,
 		})
@@ -191,15 +199,24 @@ func getPodsAndNodes(clientset kubernetes.Interface, excludeTainted bool, podLab
 	return podList, nodeList
 }
 
-func getPodMetrics(mClientset *metrics.Clientset, namespace string) *v1beta1.PodMetricsList {
-	pmList, err := mClientset.MetricsV1beta1().PodMetricses(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Error getting Pod Metrics: %v\n", err)
-		fmt.Println("For this to work, metrics-server needs to be running in your cluster")
-		os.Exit(6)
+func getPodMetrics(mClientset *metrics.Clientset, namespaces []string) *v1beta1.PodMetricsList {
+	var metricsList *v1beta1.PodMetricsList
+
+	for _, namespace := range namespaces {
+		pmList, err := mClientset.MetricsV1beta1().PodMetricses(namespace).List(context.TODO(), metav1.ListOptions{})
+		if metricsList == nil {
+			metricsList = pmList
+		} else {
+			metricsList.Items = append(metricsList.Items, pmList.Items...)
+		}
+		if err != nil {
+			fmt.Printf("Error getting Pod Metrics: %v\n", err)
+			fmt.Println("For this to work, metrics-server needs to be running in your cluster")
+			os.Exit(6)
+		}
 	}
 
-	return pmList
+	return metricsList
 }
 
 func getNodeMetrics(mClientset *metrics.Clientset, nodeList *corev1.NodeList, nodeLabels string) *v1beta1.NodeMetricsList {

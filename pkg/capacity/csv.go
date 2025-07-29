@@ -118,7 +118,7 @@ func (cp *csvPrinter) getLineItems(cl *csvLine) []string {
 	lineItems := []string{CSVStringTerminator + cl.node + CSVStringTerminator}
 
 	if cp.opts.ShowContainers || cp.opts.ShowPods {
-		if cp.opts.Namespace == "" {
+		if len(cp.opts.Namespaces) == 0 {
 			lineItems = append(lineItems, CSVStringTerminator+cl.namespace+CSVStringTerminator)
 		}
 		lineItems = append(lineItems, CSVStringTerminator+cl.pod+CSVStringTerminator)

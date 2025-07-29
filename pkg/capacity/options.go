@@ -14,7 +14,7 @@ type Options struct {
 	NodeTaints            string
 	ExcludeTainted        bool
 	NamespaceLabels       string
-	Namespace             string
+	Namespaces            []string
 	KubeContext           string
 	KubeConfig            string
 	InsecureSkipTLSVerify bool

@@ -63,8 +63,8 @@ func init() {
 		"node-taints", "t", "", "comma seperated list of taints to filter nodes with, prefix taint with '!' to filter out")
 	rootCmd.PersistentFlags().StringVarP(&opts.NamespaceLabels,
 		"namespace-labels", "", "", "labels to filter namespaces with")
-	rootCmd.PersistentFlags().StringVarP(&opts.Namespace,
-		"namespace", "n", "", "only include pods from this namespace")
+	rootCmd.PersistentFlags().StringSliceVarP(&opts.Namespaces,
+		"namespace", "n", nil, "only include pods from this namespace, multi value")
 	rootCmd.PersistentFlags().StringVarP(&opts.KubeContext,
 		"context", "", "", "context to use for Kubernetes config")
 	rootCmd.PersistentFlags().StringVarP(&opts.KubeConfig,

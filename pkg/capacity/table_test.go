@@ -27,7 +27,7 @@ func TestGetLineItems(t *testing.T) {
 			ShowUtil:       false,
 			ShowPodCount:   false,
 			ShowContainers: false,
-			Namespace:      "example",
+			Namespaces:     []string{"example"},
 		},
 	}
 
@@ -37,7 +37,7 @@ func TestGetLineItems(t *testing.T) {
 			ShowUtil:       false,
 			ShowPodCount:   false,
 			ShowContainers: true,
-			Namespace:      "",
+			Namespaces:     nil,
 		},
 	}
 
@@ -46,7 +46,7 @@ func TestGetLineItems(t *testing.T) {
 			ShowPods:       true,
 			ShowUtil:       true,
 			ShowContainers: true,
-			Namespace:      "",
+			Namespaces:     nil,
 			ShowPodCount:   true,
 		},
 	}

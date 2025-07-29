@@ -106,7 +106,7 @@ func (tp *tablePrinter) getLineItems(tl *tableLine) []string {
 	lineItems := []string{tl.node}
 
 	if tp.opts.ShowContainers || tp.opts.ShowPods {
-		if tp.opts.Namespace == "" {
+		if len(tp.opts.Namespaces) == 0 {
 			lineItems = append(lineItems, tl.namespace)
 		}
 		lineItems = append(lineItems, tl.pod)

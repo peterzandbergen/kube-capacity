@@ -251,33 +251,6 @@ func getTestClusterMetric() clusterMetric {
 					},
 				},
 			},
-		}, &corev1.NodeList{
-			Items: []corev1.Node{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "example-node-1",
-					},
-					Status: corev1.NodeStatus{
-						Allocatable: corev1.ResourceList{
-							"cpu":    resource.MustParse("1000m"),
-							"memory": resource.MustParse("4000Mi"),
-							"pods":   resource.MustParse("110"),
-						},
-					},
-				},
-			},
-		}, &v1beta1.NodeMetricsList{
-			Items: []v1beta1.NodeMetrics{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "example-node-1",
-					},
-					Usage: corev1.ResourceList{
-						"cpu":    resource.MustParse("63m"),
-						"memory": resource.MustParse("439Mi"),
-					},
-				},
-			},
 		},
 	)
 }

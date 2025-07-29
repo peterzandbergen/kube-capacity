@@ -28,8 +28,7 @@ import (
 
 func TestBuildClusterMetricEmpty(t *testing.T) {
 	cm := buildClusterMetric(
-		&corev1.PodList{}, &v1beta1.PodMetricsList{}, &corev1.NodeList{}, &v1beta1.NodeMetricsList{},
-	)
+		&corev1.PodList{}, &v1beta1.PodMetricsList{})
 
 	expected := clusterMetric{
 		cpu: &resourceMetric{
@@ -116,33 +115,7 @@ func TestBuildClusterMetricFull(t *testing.T) {
 					},
 				},
 			},
-		}, &corev1.NodeList{
-			Items: []corev1.Node{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "example-node-1",
-					},
-					Status: corev1.NodeStatus{
-						Allocatable: corev1.ResourceList{
-							"cpu":    resource.MustParse("1000m"),
-							"memory": resource.MustParse("4000Mi"),
-						},
-					},
-				},
-			},
-		}, &v1beta1.NodeMetricsList{
-			Items: []v1beta1.NodeMetrics{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "example-node-1",
-					},
-					Usage: corev1.ResourceList{
-						"cpu":    resource.MustParse("43m"),
-						"memory": resource.MustParse("349Mi"),
-					},
-				},
-			},
-		},
+		}, 
 	)
 
 	cpuExpected := &resourceMetric{
@@ -184,70 +157,6 @@ func TestBuildClusterMetricFull(t *testing.T) {
 	ensureEqualResourceMetric(t, pm["default-example-pod"].memory, memoryExpected)
 }
 
-func TestSortByPodCount(t *testing.T) {
-	nodeList := &corev1.NodeList{
-		Items: []corev1.Node{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
-				Status: corev1.NodeStatus{
-					Allocatable: corev1.ResourceList{
-						"pods": resource.MustParse("110"),
-					},
-				},
-			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-2",
-				},
-				Status: corev1.NodeStatus{
-					Allocatable: corev1.ResourceList{
-						"pods": resource.MustParse("110"),
-					},
-				},
-			},
-		},
-	}
-
-	podList := &corev1.PodList{
-		Items: []corev1.Pod{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pod-1",
-				},
-				Spec: corev1.PodSpec{
-					NodeName: "node-1",
-				},
-			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pod-2",
-				},
-				Spec: corev1.PodSpec{
-					NodeName: "node-1",
-				},
-			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pod-3",
-				},
-				Spec: corev1.PodSpec{
-					NodeName: "node-2",
-				},
-			},
-		},
-	}
-
-	cm := buildClusterMetric(podList, nil, nodeList, nil)
-	sortedNodes := cm.getSortedNodeMetrics("pod.count")
-
-	// Node 1 should come first as it has 2 pods vs 1 pod on node 2
-	assert.Equal(t, "node-1", sortedNodes[0].name)
-	assert.Equal(t, "node-2", sortedNodes[1].name)
-	assert.Equal(t, int64(2), sortedNodes[0].podCount.current)
-	assert.Equal(t, int64(1), sortedNodes[1].podCount.current)
-}
 
 func ensureEqualResourceMetric(t *testing.T, actual *resourceMetric, expected *resourceMetric) {
 	assert.Equal(t, actual.allocatable.MilliValue(), expected.allocatable.MilliValue())

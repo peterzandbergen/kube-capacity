@@ -87,8 +87,7 @@ type podCount struct {
 	allocatable int64
 }
 
-func buildClusterMetric(podList *corev1.PodList, pmList *v1beta1.PodMetricsList,
-	nodeList *corev1.NodeList, nmList *v1beta1.NodeMetricsList) clusterMetric {
+func buildClusterMetric(podList *corev1.PodList, pmList *v1beta1.PodMetricsList) clusterMetric {
 	cm := clusterMetric{
 		cpu:         &resourceMetric{resourceType: "cpu"},
 		memory:      &resourceMetric{resourceType: "memory"},
@@ -98,45 +97,14 @@ func buildClusterMetric(podList *corev1.PodList, pmList *v1beta1.PodMetricsList,
 
 	var totalPodAllocatable int64
 	var totalPodCurrent int64
-	for _, node := range nodeList.Items {
-		var tmpPodCount int64
-		for _, pod := range podList.Items {
-			if pod.Spec.NodeName == node.Name && pod.Status.Phase != corev1.PodSucceeded && pod.Status.Phase != corev1.PodFailed {
-				tmpPodCount++
-			}
-		}
-		totalPodCurrent += tmpPodCount
-		totalPodAllocatable += node.Status.Allocatable.Pods().Value()
-		cm.nodeMetrics[node.Name] = &nodeMetric{
-			name: node.Name,
-			cpu: &resourceMetric{
-				resourceType: "cpu",
-				allocatable:  node.Status.Allocatable["cpu"],
-			},
-			memory: &resourceMetric{
-				resourceType: "memory",
-				allocatable:  node.Status.Allocatable["memory"],
-			},
-			podMetrics: map[string]*podMetric{},
-			podCount: &podCount{
-				current:     tmpPodCount,
-				allocatable: node.Status.Allocatable.Pods().Value(),
-			},
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != corev1.PodSucceeded && pod.Status.Phase != corev1.PodFailed {
+			totalPodCurrent++
 		}
 	}
 
 	cm.podCount.current = totalPodCurrent
 	cm.podCount.allocatable = totalPodAllocatable
-
-	if nmList != nil {
-		for _, nm := range nmList.Items {
-			if cm.nodeMetrics[nm.Name] == nil {
-				continue
-			}
-			cm.nodeMetrics[nm.Name].cpu.utilization = nm.Usage["cpu"]
-			cm.nodeMetrics[nm.Name].memory.utilization = nm.Usage["memory"]
-		}
-	}
 
 	podMetrics := map[string]v1beta1.PodMetrics{}
 	if pmList != nil {
@@ -148,17 +116,6 @@ func buildClusterMetric(podList *corev1.PodList, pmList *v1beta1.PodMetricsList,
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != corev1.PodSucceeded && pod.Status.Phase != corev1.PodFailed {
 			cm.addPodMetric(&pod, podMetrics[fmt.Sprintf("%s-%s", pod.GetNamespace(), pod.GetName())])
-		}
-	}
-
-	for _, node := range nodeList.Items {
-		if nm, ok := cm.nodeMetrics[node.Name]; ok {
-			cm.addNodeMetric(nm)
-			// When namespace filtering is configured, we want to sum pod
-			// utilization instead of relying on node util.
-			if nmList == nil {
-				nm.addPodUtilization()
-			}
 		}
 	}
 
